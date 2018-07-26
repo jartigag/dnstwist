@@ -19,7 +19,7 @@
 # limitations under the License.
 
 __author__ = 'Marcin Ulikowski'
-__version__ = '1.04b'
+__version__ = '20180623'
 __email__ = 'marcin@ulikowski.pl'
 
 import re
@@ -113,7 +113,7 @@ else:
 
 def p_cli(data):
 	global args
-	if not args.csv and not args.json:
+	if args.format == 'cli':
 		sys.stdout.write(data.encode('utf-8'))
 		sys.stdout.flush()
 
@@ -125,13 +125,13 @@ def p_err(data):
 
 def p_csv(data):
 	global args
-	if args.csv:
+	if args.format == 'csv':
 		sys.stdout.write(data)
 
 
 def p_json(data):
 	global args
-	if args.json:
+	if args.format == 'json':
 		sys.stdout.write(data)
 
 
@@ -321,12 +321,11 @@ class DomainFuzz():
 		'z': [u'ʐ', u'ż', u'ź', u'ʐ', u'ᴢ']
 		}
 
-		result = []
+		result_1pass = set()
 
-		for ws in range(0, len(self.domain)):
+		for ws in range(1, len(self.domain)):
 			for i in range(0, (len(self.domain)-ws)+1):
 				win = self.domain[i:i+ws]
-
 				j = 0
 				while j < ws:
 					c = win[j]
@@ -334,11 +333,28 @@ class DomainFuzz():
 						win_copy = win
 						for g in glyphs[c]:
 							win = win.replace(c, g)
-							result.append(self.domain[:i] + win + self.domain[i+ws:])
+							result_1pass.add(self.domain[:i] + win + self.domain[i+ws:])
 							win = win_copy
 					j += 1
 
-		return list(set(result))
+		result_2pass = set()
+
+		for domain in result_1pass:
+			for ws in range(1, len(domain)):
+				for i in range(0, (len(domain)-ws)+1):
+					win = domain[i:i+ws]
+					j = 0
+					while j < ws:
+						c = win[j]
+						if c in glyphs:
+							win_copy = win
+							for g in glyphs[c]:
+								win = win.replace(c, g)
+								result_2pass.add(domain[:i] + win + domain[i+ws:])
+								win = win_copy
+						j += 1
+
+		return list(result_2pass)
 
 	def __hyphenation(self):
 		result = []
@@ -721,6 +737,15 @@ def generate_csv(domains):
 	return output
 
 
+def generate_idle(domains):
+	output = ''
+
+	for domain in domains:
+		output += '%s\n' % domain.get('domain-name').encode('idna')
+
+	return output
+
+
 def generate_cli(domains):
 	output = ''
 
@@ -792,17 +817,16 @@ def main():
 	parser.add_argument('domain', help='domain name or URL to check')
 	parser.add_argument('-a', '--all', action='store_true', help='show all DNS records')
 	parser.add_argument('-b', '--banners', action='store_true', help='determine HTTP and SMTP service banners')
-	parser.add_argument('-c', '--csv', action='store_true', help='print output in CSV format')
 	parser.add_argument('-d', '--dictionary', type=str, metavar='FILE', help='generate additional domains using dictionary FILE')
 	parser.add_argument('-g', '--geoip', action='store_true', help='perform lookup for GeoIP location')
-	parser.add_argument('-j', '--json', action='store_true', help='print output in JSON format')
 	parser.add_argument('-m', '--mxcheck', action='store_true', help='check if MX host can be used to intercept e-mails')
+	parser.add_argument('-f', '--format', type=str, choices=['cli', 'csv', 'json', 'idle'], default='cli', help='output format (default: cli)')
 	parser.add_argument('-r', '--registered', action='store_true', help='show only registered domain names')
 	parser.add_argument('-s', '--ssdeep', action='store_true', help='fetch web pages and compare their fuzzy hashes to evaluate similarity')
 	parser.add_argument('-t', '--threads', type=int, metavar='NUMBER', default=THREAD_COUNT_DEFAULT, help='start specified NUMBER of threads (default: %d)' % THREAD_COUNT_DEFAULT)
 	parser.add_argument('-w', '--whois', action='store_true', help='perform lookup for WHOIS creation/update time (slow)')
-	parser.add_argument('--nameservers', type=str, metavar='LIST', help='comma separated list of nameservers to query')
-	parser.add_argument('--port', type=int, metavar='PORT', help='the port to send queries to')
+	parser.add_argument('--nameservers', type=str, metavar='LIST', help='comma separated list of DNS servers to query')
+	parser.add_argument('--port', type=int, metavar='PORT', help='the port number to send queries to')
 
 	if len(sys.argv) < 2:
 		sys.stdout.write('%sdnstwist %s by <%s>%s\n\n' % (ST_BRI, __version__, __email__, ST_RST))
@@ -811,10 +835,6 @@ def main():
 
 	global args
 	args = parser.parse_args()
-
-	if args.csv and args.json:
-		p_err('error: cannot use both CSV and JSON as output\n')
-		bye(-1)
 
 	if args.threads < 1:
 		args.threads = THREAD_COUNT_DEFAULT
@@ -837,6 +857,10 @@ def main():
 		ddict.load_dict(args.dictionary)
 		ddict.generate()
 		domains += ddict.domains
+
+	if args.format == 'idle':
+		sys.stdout.write(generate_idle(domains))
+		bye(0)
 
 	if not DB_TLD:
 		p_err('error: missing TLD database file: %s\n' % FILE_TLD)
@@ -938,7 +962,7 @@ def main():
 	while not jobs.empty():
 		p_cli('.')
 		qcurr = 100 * (len(domains) - jobs.qsize()) / len(domains)
-		if qcurr - 20 >= qperc:
+		if qcurr - 15 >= qperc:
 			qperc = qcurr
 			p_cli('%u%%' % qperc)
 		time.sleep(1)
@@ -960,9 +984,9 @@ def main():
 		del domains_registered
 
 	if domains:
-		if args.csv:
+		if args.format == 'csv':
 			p_csv(generate_csv(domains))
-		elif args.json:
+		elif args.format == 'json':
 			p_json(generate_json(domains))
 		else:
 			p_cli(generate_cli(domains))
