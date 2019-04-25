@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 #
 # dnstwist
@@ -9,7 +9,7 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
@@ -230,7 +230,7 @@ class DomainFuzz():
 		'1': '2a', '2': '3za1', '3': '4ez2', '4': '5re3', '5': '6tr4', '6': '7yt5', '7': '8uy6', '8': '9iu7', '9': '0oi8', '0': 'po9',
 		'a': '2zq1', 'z': '3esqa2', 'e': '4rdsz3', 'r': '5tfde4', 't': '6ygfr5', 'y': '7uhgt6', 'u': '8ijhy7', 'i': '9okju8', 'o': '0plki9', 'p': 'lo0m',
 		'q': 'zswa', 's': 'edxwqz', 'd': 'rfcxse', 'f': 'tgvcdr', 'g': 'yhbvft', 'h': 'ujnbgy', 'j': 'iknhu', 'k': 'olji', 'l': 'kopm', 'm': 'lp',
-		'w': 'sxq', 'x': 'zsdc', 'c': 'xdfv', 'v': 'cfgb', 'b': 'vghn', 'n': 'bhj'
+		'w': 'sxq', 'x': 'wsdc', 'c': 'xdfv', 'v': 'cfgb', 'b': 'vghn', 'n': 'bhj'
 		}
 		self.keyboards = [ self.qwerty, self.qwertz, self.azerty ]
 
@@ -301,7 +301,7 @@ class DomainFuzz():
 		'f': [u'Ϝ', u'ƒ', u'Ғ'],
 		'g': ['q', u'ɢ', u'ɡ', u'Ԍ', u'Ԍ', u'ġ', u'ğ', u'ց', u'ǵ', u'ģ'],
 		'h': ['lh', 'ih', u'һ', u'հ', u'Ꮒ', u'н'],
-		'i': ['1', 'l', u'Ꭵ', u'í', u'ï', u'ı', u'ɩ', u'ι', u'ꙇ', u'ǐ', u'ĭ'],
+		'i': ['1', 'l', u'Ꭵ', u'í', u'ï', u'ı', u'ɩ', u'ι', u'ꙇ', u'ǐ', u'ĭ', u'ì'],
 		'j': [u'ј', u'ʝ', u'ϳ', u'ɉ'],
 		'k': ['lk', 'ik', 'lc', u'κ', u'ⲕ', u'κ'],
 		'l': ['1', 'i', u'ɫ', u'ł'],
@@ -354,7 +354,7 @@ class DomainFuzz():
 								win = win_copy
 						j += 1
 
-		return list(result_2pass)
+		return list(result_1pass | result_2pass)
 
 	def __hyphenation(self):
 		result = []
